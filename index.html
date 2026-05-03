@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดหนัก! แจกจริง! ภารกิจล่า Lead ใน Salesforce เริ่มแล้วพี่น้อง ปข.6!</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fa-solid fa-gift text-primary"></i> ปข.6 Lead Rewards
+            </div>
+            <div class="nav-links">
+                <a href="#awards">รางวัล</a>
+                <a href="#summary">สถิติรวม</a>
+                <a href="#daily">รายละเอียดรายวัน</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge"><i class="fa-solid fa-trophy"></i> ภารกิจประจำเดือน</div>
+            <h1>จัดหนัก! แจกจริง! 🎁 ภารกิจล่า Lead ใน Salesforce</h1>
+            <p>เพื่อให้การหาลูกค้าใหม่สนุกและท้าทายกว่าเดิม ใครขยัน ใครวินัยดี เรามีรางวัลมอบให้ทุกเดือน! 🏆</p>
+        </div>
+    </section>
+
+    <!-- Filter Section -->
+    <section class="filters-container">
+        <div class="filter-box">
+            <div class="filters-inline">
+                <span class="filter-label-title"><i class="fa-solid fa-filter"></i> ตัวกรองข้อมูล</span>
+                <div class="filters-inline-controls">
+                    <div class="filter-group-inline">
+                        <label for="filter-month">เดือน</label>
+                        <select id="filter-month">
+                            <option value="all">ทุกเดือน</option>
+                        </select>
+                    </div>
+                    <div class="filter-group-inline">
+                        <label for="filter-province">จังหวัด</label>
+                        <select id="filter-province">
+                            <option value="all">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <div class="filter-group-inline">
+                        <label for="filter-team">ทีม</label>
+                        <select id="filter-team">
+                            <option value="all">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <div class="filter-group-inline">
+                        <label for="filter-branch">ที่ทำการ</label>
+                        <select id="filter-branch">
+                            <option value="all">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <button id="reset-filters" class="icon-btn" title="รีเซทตัวกรอง"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container">
+        
+        <!-- Loading Spinner -->
+        <div id="loader" class="loader-container">
+            <div class="spinner"></div>
+            <p>กำลังโหลดข้อมูล...</p>
+        </div>
+
+        <div id="dashboard-content" style="display: none;">
+            
+            <!-- Awards Section -->
+            <section id="awards">
+
+                <!-- Outer frame wrapping both awards -->
+                <div class="awards-frame" id="awards-frame">
+
+                    <!-- Frame header: month label + capture button -->
+                    <div class="awards-frame-header">
+                        <div class="awards-frame-title">
+                            <div class="awards-activity-name">กิจกรรม "ล่า Lead ใน Salesforce" ปข.6</div>
+                            <div id="awards-month-label" class="awards-month-label"></div>
+                        </div>
+                        <button class="capture-btn" onclick="captureAward('awards-frame')" title="บันทึกภาพรางวัลทั้ง 2 รางวัล">
+                            <i class="fa-solid fa-camera"></i>
+                        </button>
+                    </div>
+
+                    <!-- Award cards row -->
+                    <div class="awards-cards-row">
+
+                        <!-- จอมขยัน ปข.6 -->
+                        <div class="award-card most-active-award award-border-orange">
+                            <div class="award-header">
+                                <div class="award-icon bg-orange"><i class="fa-solid fa-fire"></i></div>
+                                <div class="award-title">
+                                    <h2>รางวัล "จอมขยัน ปข.6" 🔥</h2>
+                                    <p>ที่ทำการ ที่มียอดรวมการรายงาน Lead สูงสุด 3 อันดับแรกของเดือน</p>
+                                </div>
+                            </div>
+                            <div class="award-body" id="top3-container">
+                                <!-- Top 3 Teams injected here -->
+                            </div>
+                        </div>
+
+                        <!-- วินัยเหล็ก -->
+                        <div class="award-card iron-discipline-award award-border-blue">
+                            <div class="award-header">
+                                <div class="award-icon bg-blue"><i class="fa-solid fa-shield-halved"></i></div>
+                                <div class="award-title">
+                                    <h2>รางวัล "วินัยเหล็ก" 🛡️</h2>
+                                    <p>ส่ง Lead เข้าระบบ Salesforce ครบทุกวันทำการ 100% (ขั้นต่ำวันละ 1 ราย /ทีม)</p>
+                                </div>
+                            </div>
+                            <div class="award-body" id="iron-discipline-container">
+                                <!-- Iron Discipline Teams injected here -->
+                            </div>
+                        </div>
+
+                    </div><!-- end awards-cards-row -->
+                </div><!-- end awards-frame -->
+
+            </section>
+
+            <!-- Summary Section -->
+            <section id="summary" class="summary-section">
+                <div class="section-heading">
+                    <h2><i class="fa-solid fa-chart-pie"></i> ภาพรวมจำนวน Lead ทั้งหมด</h2>
+                    <p>แยกตามจังหวัดและทีม เพื่อตรวจสอบรางวัล จอมขยัน ปข.6</p>
+                </div>
+                
+                <div class="summary-grid">
+                    <div class="data-card">
+                        <h3>สรุปรายจังหวัด</h3>
+                        <div class="table-responsive">
+                            <table class="data-table" id="summary-province-table">
+                                <thead>
+                                    <tr>
+                                    <th>จังหวัด</th>
+                                    <th class="text-center" style="width: 40%;">จำนวน Lead</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="data-card">
+                        <h3>สรุปรายทีม</h3>
+                        <div class="table-responsive" id="team-table-wrapper">
+                            <table class="data-table" id="summary-team-table">
+                                <thead>
+                                    <tr>
+                                    <th>ทีม</th>
+                                    <th class="text-center" style="width: 40%;">จำนวน Lead</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Daily Detail Section -->
+            <section id="daily" class="daily-section">
+                <div class="section-heading">
+                    <h2><i class="fa-solid fa-calendar-days"></i> รายละเอียดรายวัน</h2>
+                    <p>สถิติการส่ง Lead รายวัน แยกรายจังหวัดและทีม เพื่อตรวจสอบรางวัล วินัยเหล็ก</p>
+                </div>
+                
+                <div class="data-card full-width">
+                    <div class="table-responsive pivot-table-wrapper">
+                        <table class="data-table pivot-table" id="daily-detail-table">
+                            <thead>
+                                <!-- Injected via JS -->
+                            </thead>
+                            <tbody>
+                                <!-- Injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>&copy; 2026 ปข.6 Lead Rewards Dashboard. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scroll to Top Button -->
+    <button id="scroll-top" class="scroll-top-btn"><i class="fa-solid fa-arrow-up"></i></button>
+
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- html2canvas for screenshot -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
