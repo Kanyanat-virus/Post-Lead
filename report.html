@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานประจำวัน – ภารกิจล่า Lead ปข.6</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="report.css?v=2">
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fa-solid fa-gift text-primary"></i> ปข.6 Lead Rewards
+            </div>
+            <div class="nav-links">
+                <a href="index.html"><i class="fa-solid fa-house"></i> หน้าหลัก</a>
+                <a href="report.html" class="active"><i class="fa-solid fa-table"></i> รายงานประจำวัน</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge"><i class="fa-solid fa-file-lines"></i> สรุปภาพรวม</div>
+            <h1><i class="fa-solid fa-table-cells-large" style="font-size:1.4rem;"></i> รายงานการหา Lead และเข้าพบลูกค้า</h1>
+            <p>สังกัด ปข.6 — แสดงข้อมูลประจำวันและยอดสะสม</p>
+        </div>
+    </section>
+
+    <!-- Controls Bar -->
+    <section class="filters-container">
+        <div class="filter-box">
+            <div class="filters-inline">
+                <span class="filter-label-title"><i class="fa-solid fa-sliders"></i> ตัวเลือก</span>
+                <div class="filters-inline-controls">
+                    <!-- Date picker -->
+                    <div class="filter-group-inline" id="date-single-group">
+                        <label for="report-date">วันที่</label>
+                        <input type="date" id="report-date" class="date-input">
+                    </div>
+                    <!-- Date range for cumulative -->
+                    <div class="filter-group-inline" id="date-range-group" style="display: none;">
+                        <label for="report-start-date">ตั้งแต่</label>
+                        <input type="date" id="report-start-date" class="date-input">
+                        <label for="report-end-date">ถึง</label>
+                        <input type="date" id="report-end-date" class="date-input">
+                    </div>
+                    <!-- View toggle -->
+                    <div class="view-toggle-group">
+                        <button id="btn-daily" class="view-toggle-btn active" onclick="switchView('daily')">
+                            <i class="fa-solid fa-calendar-day"></i> ประจำวัน
+                        </button>
+                        <button id="btn-cumulative" class="view-toggle-btn" onclick="switchView('cumulative')">
+                            <i class="fa-solid fa-calendar-check"></i> สะสม
+                        </button>
+                    </div>
+                    <button id="reset-report" class="icon-btn" title="รีเซท" onclick="resetReport()">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container">
+
+        <!-- Loader -->
+        <div id="report-loader" class="loader-container">
+            <div class="spinner"></div>
+            <p>กำลังโหลดข้อมูล...</p>
+        </div>
+
+        <!-- Report Content -->
+        <div id="report-content" style="display:none;">
+
+            <div id="report-capture-area" style="background: white; padding: 10px;">
+                <!-- Report Title -->
+                <div class="report-title-block">
+                    <div class="report-main-title" id="report-main-title">
+                        สรุปการหา Lead และการเข้าพบลูกค้าของทีมขายในสังกัด ปข.6
+                    </div>
+                    <div class="report-sub-title" id="report-sub-title"></div>
+                </div>
+
+                <!-- Team count badge -->
+                <div class="report-meta">
+                    <span id="team-count-badge" class="team-count-badge"></span>
+                    <button class="capture-btn report-capture-btn" onclick="captureReport()" title="บันทึกภาพตาราง">
+                        <i class="fa-solid fa-camera"></i>
+                    </button>
+                </div>
+
+                <!-- Scrollable Table -->
+                <div class="report-table-wrapper">
+                <table class="report-table" id="report-table">
+                    <thead id="report-thead"></thead>
+                    <tbody id="report-tbody"></tbody>
+                    <tfoot id="report-tfoot"></tfoot>
+                </table>
+            </div>
+            </div> <!-- End Capture Area -->
+
+        </div>
+
+    </main>
+
+    <footer>
+        <p>ปข.6 Lead Rewards Dashboard &copy; 2569</p>
+    </footer>
+
+    <button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+        <i class="fa-solid fa-arrow-up"></i>
+    </button>
+
+    <!-- html2canvas for screenshot -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="report.js"></script>
+</body>
+</html>

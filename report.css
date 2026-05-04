@@ -1,0 +1,230 @@
+/* ============================================================
+   report.css – styles specific to the daily/cumulative report page
+   ============================================================ */
+
+/* ── Nav active link ────────────────────────────────────────── */
+.nav-links a.active { color: var(--primary); font-weight: 600; }
+
+/* ── Date input ─────────────────────────────────────────────── */
+.date-input {
+    padding: 5px 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    font-family: 'Kanit', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text-dark);
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    width: 150px;
+}
+
+.date-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(157, 78, 221, 0.1);
+}
+
+/* ── View Toggle ────────────────────────────────────────────── */
+.view-toggle-group {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.view-toggle-btn {
+    padding: 5px 14px;
+    font-family: 'Kanit', sans-serif;
+    font-size: 0.84rem;
+    font-weight: 500;
+    border: none;
+    background: var(--white);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.view-toggle-btn:first-child { border-right: 1px solid var(--border-color); }
+
+.view-toggle-btn.active {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.view-toggle-btn:hover:not(.active) {
+    background: rgba(157, 78, 221, 0.06);
+    color: var(--primary);
+}
+
+/* ── Report Title Block ─────────────────────────────────────── */
+.report-title-block {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.report-main-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.report-sub-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-top: 2px;
+}
+
+/* ── Meta row (team count + capture) ───────────────────────── */
+.report-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.team-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(157, 78, 221, 0.08);
+    border: 1px solid rgba(157, 78, 221, 0.2);
+    color: var(--primary);
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.report-capture-btn {
+    margin-left: auto;
+}
+
+/* ── Report Table Wrapper ───────────────────────────────────── */
+.report-table-wrapper {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+}
+
+/* ── Report Table ───────────────────────────────────────────── */
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+
+/* All cells */
+.report-table th,
+.report-table td {
+    border: 1px solid #d0d0d0;
+    padding: 5px 8px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Header rows */
+.report-table thead tr:first-child th {
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.report-table thead tr:nth-child(2) th {
+    background: var(--primary-light);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Sticky header */
+.report-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.report-table thead tr:nth-child(2) th {
+    top: 34px; /* height of first header row */
+    z-index: 19;
+}
+
+/* Sticky left columns */
+.report-table .col-team {
+    position: sticky;
+    left: 0;
+    z-index: 15;
+    background: #fff;
+    text-align: center;
+    min-width: 130px;
+    max-width: 180px;
+    white-space: normal;
+}
+
+.report-table .col-branch {
+    position: sticky;
+    left: 130px;
+    z-index: 15;
+    background: #fff;
+    text-align: center;
+    min-width: 200px;
+    max-width: 320px;
+    white-space: normal;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.06);
+}
+
+/* Sticky header + sticky column intersection */
+.report-table thead .col-team,
+.report-table thead .col-branch {
+    z-index: 25;
+}
+
+/* Body rows alternating */
+.report-table tbody tr:nth-child(even) td { background: #fafafa; }
+.report-table tbody tr:nth-child(even) td.col-team,
+.report-table tbody tr:nth-child(even) td.col-branch { background: #fafafa; }
+
+.report-table tbody tr:hover td { background: rgba(157, 78, 221, 0.04); }
+
+/* Total row */
+.report-table tfoot tr td {
+    background: var(--primary);
+    color: #ffffff;
+    font-weight: 700;
+}
+
+/* Lead section header */
+.th-lead-group { background: var(--primary) !important; }
+.th-visit-group { background: #3a0ca3 !important; }
+
+/* Result columns (ปิดได้/ปิดไม่ได้) */
+.th-result-group { background: var(--orange) !important; }
+
+/* Score cells */
+.cell-total-lead   { font-weight: 700; color: var(--primary); }
+.cell-total-visit  { font-weight: 700; color: #3a0ca3; }
+.cell-close-yes    { font-weight: 700; color: #27ae60; }
+.cell-close-no     { font-weight: 700; color: #e74c3c; }
+.cell-grand-total  { font-weight: 700; color: #fff; background: var(--primary) !important; }
+
+/* Zero cells – muted */
+.cell-zero { color: #bbb; }
+
+/* ── No-data state ──────────────────────────────────────────── */
+.no-data-msg {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .report-table-wrapper { border-radius: var(--radius-md); }
+    .report-table         { font-size: 0.75rem; }
+    .report-table .col-branch { left: 100px; min-width: 140px; }
+    .report-table .col-team   { min-width: 100px; }
+}
