@@ -1,10 +1,96 @@
 // ใส่ URL ของ Google Apps Script Web App ที่ได้จากการ Deploy ที่นี่
-const API_URL = 'https://script.google.com/macros/s/AKfycbxoqojOsl7g0qdNEaKTXxXNsjpdDpl43jv5W2zJ1LMdMQ5p1F3aJbaLU69vvm8pPYj12A/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyfbWtEkj7c9ImlU4z3izMX5HeH1DFum061ZjJQjIthlKJ3PMwHReN7stwvxveCRd1TUQ/exec';
 
 // State
 let branchDict = {}; // branchCode -> { province, branchName, team }
 let rawLeads = []; // All processed leads
 let filteredLeads = [];
+
+/* ── Fetch API with Cache ───────────────────────────────────── */
+async function fetchWithCache(url, expiryMinutes = 5) {
+    const cacheKey = 'dashboardData_v7';
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+        try {
+            const parsed = JSON.parse(cached);
+            if (Date.now() - parsed.timestamp < expiryMinutes * 60 * 1000) {
+                console.log("Using cached API data");
+                return parsed.data;
+            }
+        } catch (e) {
+            console.warn("Cache parse failed", e);
+        }
+    }
+    
+    console.log("Fetching fresh API data");
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+    const data = await res.json();
+    
+    if (data.status === 'success') {
+        // Cleanup old dashboardData cache keys to prevent quota exceeded errors
+        Object.keys(localStorage).forEach(k => {
+            if (k.startsWith('dashboardData')) {
+                localStorage.removeItem(k);
+            }
+        });
+
+        localStorage.setItem(cacheKey, JSON.stringify({
+            timestamp: Date.now(),
+            data: data
+        }));
+    }
+    return data;
+}
+
+/* ── Utilities ──────────────────────────────────────────────── */
+function parseAnyDate(dateStr) {
+    if (!dateStr) return null;
+    
+    let jsDate = new Date(dateStr);
+    
+    if (isNaN(jsDate) && dateStr.includes('/')) {
+        const parts = dateStr.split(' ')[0].split('/');
+        if (parts.length >= 3) {
+            let p0 = parseInt(parts[0], 10);
+            let p1 = parseInt(parts[1], 10);
+            let yStr = parts[2];
+            let y = parseInt(yStr, 10);
+            
+            if (y > 2500) y -= 543;
+            
+            let d, m;
+            if (p0 > 12) { d = p0; m = p1; } 
+            else if (p1 > 12) { m = p0; d = p1; }
+            else { m = p0; d = p1; }
+            
+            jsDate = new Date(y, m - 1, d);
+        }
+    }
+    
+    if (isNaN(jsDate)) {
+        // Handle Google Sheets stringified date like "Sat Apr 29 2569 00:00:00 GMT+0700"
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const match = dateStr.match(/([A-Z][a-z]{2})\s+(\d{1,2})\s+(\d{4})/);
+        if (match) {
+            const mIndex = months.indexOf(match[1]);
+            if (mIndex !== -1) {
+                let d = parseInt(match[2], 10);
+                let y = parseInt(match[3], 10);
+                if (y > 2500) y -= 543;
+                jsDate = new Date(y, mIndex, d);
+            }
+        }
+    }
+    
+    if (isNaN(jsDate)) return null;
+    
+    if (jsDate.getFullYear() > 2500) {
+        jsDate.setFullYear(jsDate.getFullYear() - 543);
+    }
+    
+    return jsDate;
+}
 
 // Filters state
 let currentFilters = {
@@ -24,47 +110,11 @@ const PROVINCE_ORDER = [
 ];
 
 // Thai Public Holidays (official government holidays)
-// Format: 'YYYY-MM-DD'
 const THAI_HOLIDAYS = new Set([
-    // 2025 (BE 2568)
-    '2025-01-01', '2025-01-02', // ปีใหม่ + วันหยุดพิเศษ
-    '2025-02-12', // มาฆบูชา
-    '2025-04-06', '2025-04-07', // วันจักรี
-    '2025-04-13', '2025-04-14', '2025-04-15', '2025-04-16', // สงกรานต์
-    '2025-05-01', // วันแรงงาน
-    '2025-05-04', '2025-05-05', // ฉัตรมงคล + ชดเชย
-    '2025-05-09', // วันพืชมงคล
-    '2025-05-11', '2025-05-12', // วิสาขบูชา + ชดเชย
-    '2025-06-02', '2025-06-03', // วันหยุดพิเศษ + วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าฯ
-    '2025-07-10', '2025-07-11', // อาสาฬบูชา + เข้าพรรษา
-    '2025-07-28', // วันเฉลิมพระชนมพรรษา ร.10
-    '2025-08-11', '2025-08-12', // วันหยุดพิเศษ + วันแม่
-    '2025-10-13', // วันนวมินทรมหาราช
-    '2025-10-23', // วันปิยมหาราช
-    '2025-12-05', // วันชาติ / วันพ่อ
-    '2025-12-10', // วันรัฐธรรมนูญ
-    '2025-12-31', // วันสิ้นปี
-    // 2026 (BE 2569)
-    '2026-01-01', '2026-01-02', // ปีใหม่ + วันหยุดพิเศษ
-    '2026-03-03', // มาฆบูชา
-    '2026-04-06', // วันจักรี
-    '2026-04-13', '2026-04-14', '2026-04-15', // สงกรานต์
-    '2026-05-01', // วันแรงงาน
-    '2026-05-04', // ฉัตรมงคล
-    '2026-05-13', // วันพืชมงคล
-    '2026-05-31', '2026-06-01', // วิสาขบูชา + ชดเชย
-    '2026-06-03', // วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าฯ
-    '2026-07-28', // วันเฉลิมพระชนมพรรษา ร.10
-    '2026-07-29', '2026-07-30', // อาสาฬบูชา + เข้าพรรษา
-    '2026-08-12', // วันแม่
-    '2026-10-13', // วันนวมินทรมหาราช
-    '2026-10-23', // วันปิยมหาราช
-    '2026-12-05', '2026-12-07', // วันชาติ + ชดเชย
-    '2026-12-10', // วันรัฐธรรมนูญ
-    '2026-12-31', // วันสิ้นปี
+    '2025-01-01', '2025-01-02', '2025-02-12', '2025-04-06', '2025-04-07', '2025-04-13', '2025-04-14', '2025-04-15', '2025-04-16', '2025-05-01', '2025-05-04', '2025-05-05', '2025-05-09', '2025-05-11', '2025-05-12', '2025-06-02', '2025-06-03', '2025-07-10', '2025-07-11', '2025-07-28', '2025-08-11', '2025-08-12', '2025-10-13', '2025-10-23', '2025-12-05', '2025-12-10', '2025-12-31',
+    '2026-01-01', '2026-01-02', '2026-03-03', '2026-04-06', '2026-04-13', '2026-04-14', '2026-04-15', '2026-05-01', '2026-05-04', '2026-05-13', '2026-05-31', '2026-06-01', '2026-06-03', '2026-07-28', '2026-07-29', '2026-07-30', '2026-08-12', '2026-10-13', '2026-10-23', '2026-12-05', '2026-12-07', '2026-12-10', '2026-12-31',
 ]);
 
-// Helper: Check if a day is a non-working day (weekend or public holiday)
 function isNonWorkingDay(year, month, day) {
     const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     if (THAI_HOLIDAYS.has(dateKey)) return 'holiday';
@@ -78,7 +128,6 @@ function getProvinceOrderIndex(province) {
     return idx === -1 ? 999 : idx;
 }
 
-// Helper: Get formatted subtitle for branches
 function getBranchesSubtitle(filterKey, filterType) {
     const branches = new Set();
     Object.values(branchDict).forEach(b => {
@@ -105,12 +154,7 @@ async function init() {
     }
 
     try {
-        const response = await fetch(API_URL);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
+        const data = await fetchWithCache(API_URL);
         
         if (data.status === 'error') {
             throw new Error(data.message);
@@ -121,7 +165,6 @@ async function init() {
 
         populateMonthFilter();
         
-        // Auto-select the latest month if available
         const months = getAvailableMonths();
         if (months.length > 0) {
             currentFilters.month = months[0].value;
@@ -142,83 +185,138 @@ async function init() {
 
 function parseBranches(branchesData) {
     branchesData.forEach(row => {
-        const code = row['รหัสไปรษณีย์'];
+        const code = String(row['รหัสไปรษณีย์'] || '').trim();
         if (code && code !== '') {
             branchDict[code] = {
-                province: row['จังหวัด'] || '-',
-                branchName: row['ที่ทำการ'] || '-',
-                team: row['ทีม'] || '-'
+                province: String(row['จังหวัด'] || '-').trim(),
+                branchName: String(row['ที่ทำการ'] || '-').trim(),
+                team: String(row['ทีม'] || '-').trim()
             };
         }
     });
 }
 
 function parseLeads(leadsData) {
-    rawLeads = leadsData.map(row => {
-        const dateStr = row['วันที่สร้าง']; // e.g. 29/4/2569
-        const branchCode = row['รหัสที่ทำการไปรษณีย์'];
+    rawLeads = [];
+    const seenLeads = new Set(); // To track unique company names per day
+    const TEAM_BRANCH_MAPPING = {
+        "นครสวรรค์ทีม 1": "ปจ.นครสวรรค์",
+        "นครสวรรค์ทีม 2": "ปณ.สวรรค์วิถี/จิรประวัติ/ปณ.หนองเบน/คปณ.บิ๊กซี นครสวรรค์",
+        "นครสวรรค์โซน A": "ปณ.ชุมแสง/หนองบัว/ทับกฤช",
+        "นครสวรรค์โซน B": "ปณ.พยุหะคีรี/โกรกพระ",
+        "นครสวรรค์โซน C": "ปณ.ตาคลี/ตากฟ้า/ช่องแค/จันเสน",
+        "นครสวรรค์โซน D": "ปณ.ลาดยาว/แม่วงก์",
+        "นครสวรรค์โซน E": "ปณ.ท่าตะโก/ไพศาลี",
+        "นครสวรรค์โซน F": "ปณ.บรรพตพิสัย/เก้าเลี้ยว",
+        "อุทัยธานี": "ปจ.อุทัยธานี/ปณ.หนองขาหย่าง",
+        "อุทัยธานีโซน A": "ปณ.หนองฉาง/ทัพทัน/สว่างอารมณ์",
+        "อุทัยธานีโซน B": "ปณ.บ้านไร่/ลานสัก/เขาบางแกรก/เมืองการุ้ง",
+        "กำแพงเพชร": "ปจ.กำแพงเพชร/ปากดง/ทุ่งทราย/ระหาน",
+        "กำแพงเพชรโซน A": "ปณ.พรานกระต่าย/ไทรงาม/ลานกระบือ",
+        "กำแพงเพชรโซน B": "ปณ.คลองลาน/คลองขลุง/ขาณุวรลักษบุรี/สลกบาตร",
+        "ตาก": "ปจ.ตาก",
+        "ตากโซน A": "ปณ.บ้านตาก/สามเงา/วังเจ้า",
+        "ตากโซน B": "ปณ.แม่สอด/พบพระ/แม่ระมาด/ท่าสองยาง/อุ้มผาง",
+        "สุโขทัย": "ปจ.สุโขทัย",
+        "สุโขทัยโซน A": "ปณ.สวรรคโลก/ศรีสัชนาลัย/ท่าชัย/บ้านใหม่ไชยมงคล/ทุ่งเสลี่ยม",
+        "สุโขทัยโซน B": "ปณ.ศรีสำโรง/ศรีนคร/กงไกรลาศ/ปณ.บ้านสวน",
+        "สุโขทัยโซน C": "ปณ.คีรีมาศ/บ้านด่านลานหอย/เมืองเก่า",
+        "พิษณุโลกทีม 1": "ปจ.พิษณุโลก",
+        "พิษณุโลกทีม 2": "ปจ.พิษณุโลก/อรัญญิก",
+        "พิษณุโลกโซน A": "ปณ.บางกระทุ่ม/เนินกุ่ม/วัดพริก",
+        "พิษณุโลกโซน B": "ปณ.นครไทย/ชาติตระการ",
+        "พิษณุโลกโซน C": "ปณ.วังทอง/เนินมะปราง/แก่งโสภา",
+        "พิษณุโลกโซน D": "ปณ.บางระกำ/ชุมแสงสงคราม",
+        "พิษณุโลกโซน E": "ปณ.พรหมพิราม/วัดโบสถ์/หนองตม",
+        "พิจิตร": "ปจ.พิจิตร/สากเหล็ก/หัวดง/วังทรายพูน",
+        "พิจิตรโซน A": "ปณ.ตะพานหิน/ทับคล้อ/เขาทราย",
+        "พิจิตรโซน B": "ปณ.สามง่าม/โพธิ์ประทับช้าง/ปณ.กำแพงดิน",
+        "พิจิตรโซน C": "ปณ.โพธิ์ทะเล/บางมูลนาก/วังตะกู",
+        "เพชรบูรณ์": "ปจ.เพชรบูรณ์/ท่าพล",
+        "เพชรบูรณ์โซน A": "ปณ.หล่มสัก/หล่มเก่า/เขาค้อ/น้ำหนาว/แคมป์สน",
+        "เพชรบูรณ์โซน B": "ปณ.หนองไผ่/นาเฉลียง/วังชมภู",
+        "เพชรบูรณ์โซน C": "ปณ.บึงสามพัน/วิเชียรบุรี/ศรีเทพ/ปณ.พุเตย/วังพิกุล",
+        "เพชรบูรณ์โซน D": "ปณ.วังโป่ง/ชนแดน/ดงขุย"
+    };
+
+    leadsData.forEach(row => {
+        const branchCode = String(row['รหัสที่ทำการไปรษณีย์'] || row['รหัสไปรษณีย์'] || '').trim();
+        let branchInfo = branchDict[branchCode];
         
-        // Lookup branch info
-        const branchInfo = branchDict[branchCode] || { province: 'ไม่ระบุ', branchName: row['ชื่อที่ทำการไปรษณีย์'] || 'ไม่ระบุ', team: 'ไม่ระบุ' };
-        
-        // Parse Date
-        let jsDate = null;
-        let monthVal = '';
-        let yearVal = '';
-        let formattedDateStr = dateStr;
-        
-        if (dateStr) {
-            if (dateStr.includes('T')) {
-                // ISO String format from getValues() optimization
-                jsDate = new Date(dateStr);
-                const y = jsDate.getFullYear();
-                const m = jsDate.getMonth() + 1;
-                const d = jsDate.getDate();
-                monthVal = `${y}-${m.toString().padStart(2, '0')}`;
-                yearVal = y;
-                formattedDateStr = `${d}/${m}/${y + 543}`; // Display as BE
-            } else if (dateStr.includes('/')) {
-                // Old string format (getDisplayValues)
-                const parts = dateStr.split('/');
-                if (parts.length >= 3) {
-                    const d = parseInt(parts[0], 10);
-                    const m = parseInt(parts[1], 10);
-                    let yStr = parts[2].split(' ')[0];
-                    let y = parseInt(yStr, 10);
-                    
-                    if (y > 2500) y -= 543;
-                    jsDate = new Date(y, m - 1, d);
-                    monthVal = `${y}-${m.toString().padStart(2, '0')}`;
-                    yearVal = y;
-                    formattedDateStr = dateStr.split(' ')[0];
+        let bName = String(row['สาขา'] || row['ชื่อที่ทำการ'] || row['ชื่อที่ทำการไปรษณีย์'] || '').trim();
+        let foundTeam = '';
+        if (!branchInfo && bName) {
+            for (const [t, bStr] of Object.entries(TEAM_BRANCH_MAPPING)) {
+                if (bStr.includes(bName)) {
+                    foundTeam = t;
+                    break;
                 }
             }
         }
+        
+        if (!branchInfo) {
+            branchInfo = {
+                province: 'ไม่ระบุ',
+                branchName: bName || 'ไม่ระบุ',
+                team: foundTeam || 'ไม่ระบุ'
+            };
+        }
 
-        return {
-            dateStr: formattedDateStr,
-            dateObj: jsDate,
-            monthVal: monthVal,
-            year: yearVal,
-            branchCode: branchCode,
-            branchName: branchInfo.branchName,
-            province: branchInfo.province,
-            team: branchInfo.team,
-            originalRow: row
-        };
-    }).filter(lead => lead.dateObj !== null); // Only keep leads with valid dates
+        let dateStr = row['วันที่สร้าง'] || row['วันที่'] || '';
+        let jsDate = parseAnyDate(dateStr);
+        let monthVal = '';
+        let yearVal = '';
+        let formattedDateStr = '';
+
+        if (jsDate) {
+            const y = jsDate.getFullYear();
+            const m = jsDate.getMonth() + 1;
+            const d = jsDate.getDate();
+            monthVal = `${y}-${m.toString().padStart(2, '0')}`;
+            yearVal = y;
+            formattedDateStr = `${d}/${m}/${y + 543}`;
+            const dateKey = `${yearVal}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+            
+            // Deduplicate by Date + Company Name
+            const companyName = String(row['บริษัท / บัญชี'] || row['บริษัท'] || '').trim();
+            if (companyName && companyName !== '-' && companyName !== 'ไม่ระบุ') {
+                const uniqueKey = `${dateKey}_${companyName}`;
+                if (seenLeads.has(uniqueKey)) {
+                    return; // Skip duplicate
+                }
+                seenLeads.add(uniqueKey);
+            }
+            
+            rawLeads.push({
+                branchCode: branchCode,
+                province: branchInfo.province,
+                team: branchInfo.team,
+                branchName: branchInfo.branchName,
+                month: monthVal,
+                year: yearVal,
+                dateKey: `${yearVal}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`,
+                dateObj: jsDate,
+                formattedDate: formattedDateStr,
+                employee: row['พนักงาน'] || 'ไม่ระบุ',
+                service: row['ประเภทบริการ ลูกค้าสนใจ'] || row['ประเภทบริการ'] || '-',
+                result: row['ผลการเข้าพบ'] || '-'
+            });
+        }
+    });
 }
 
 function getAvailableMonths() {
     const monthsSet = new Set();
     rawLeads.forEach(lead => {
-        if (lead.monthVal) monthsSet.add(lead.monthVal);
+        if (lead.month) monthsSet.add(lead.month);
     });
-    const sorted = Array.from(monthsSet).sort().reverse();
-    return sorted.map(m => {
-        const [y, mo] = m.split('-');
-        return { value: m, label: `${THAI_MONTHS[parseInt(mo)-1]} ${parseInt(y)+543}` };
-    });
+    
+    return Array.from(monthsSet)
+        .sort((a, b) => b.localeCompare(a))
+        .map(m => {
+            const [y, mo] = m.split('-');
+            return { value: m, label: `${THAI_MONTHS[parseInt(mo)-1]} ${parseInt(y)+543}` };
+        });
 }
 
 function populateMonthFilter() {
@@ -332,7 +430,7 @@ function setupEventListeners() {
 
 function applyFilters() {
     filteredLeads = rawLeads.filter(lead => {
-        if (currentFilters.month !== 'all' && lead.monthVal !== currentFilters.month) return false;
+        if (currentFilters.month !== 'all' && lead.month !== currentFilters.month) return false;
         if (currentFilters.province !== 'all' && lead.province !== currentFilters.province) return false;
         if (currentFilters.team !== 'all' && lead.team !== currentFilters.team) return false;
         if (currentFilters.branch !== 'all' && lead.branchName !== currentFilters.branch) return false;
@@ -596,6 +694,16 @@ function renderSummary() {
             teamWrapper.style.maxHeight = provWrapper.clientHeight + 'px';
             teamWrapper.style.overflowY = 'auto';
             
+            // Refresh button listener
+            const refreshBtn = document.querySelector('.btn-refresh');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', async () => {
+                    refreshBtn.style.opacity = '0.5';
+                    localStorage.removeItem('dashboardData_v6');
+                    location.reload();
+                });
+            }
+
             // Make team headers sticky so they stay visible when scrolling
             const teamHeaders = document.querySelectorAll('#summary-team-table th');
             teamHeaders.forEach(th => {
@@ -612,9 +720,11 @@ function renderDailyTable() {
     const table = document.getElementById('daily-detail-table');
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
+    const tfoot = document.getElementById('daily-detail-tfoot');
     
     thead.innerHTML = '';
     tbody.innerHTML = '';
+    if (tfoot) tfoot.innerHTML = '';
 
     if (currentFilters.month === 'all') {
         tbody.innerHTML = '<tr><td class="text-center text-muted" style="padding: 30px;">กรุณาเลือกเดือนในตัวกรองด้านบนเพื่อดูตารางสถิติรายวัน</td></tr>';
@@ -697,6 +807,9 @@ function renderDailyTable() {
     }
 
     const fragment = document.createDocumentFragment();
+    let colTotals = new Array(daysInMonth).fill(0);
+    let grandTotal = 0;
+
     sortedTeams.forEach(tData => {
         const tr = document.createElement('tr');
         
@@ -705,18 +818,35 @@ function renderDailyTable() {
 
         for (let i = 0; i < daysInMonth; i++) {
             const count = tData.dailyCounts[i];
+            colTotals[i] += count;
+            
             const dayType = isNonWorkingDay(year, month, i + 1);
             const cls = dayType === 'holiday' ? 'bg-holiday' : dayType === 'weekend' ? 'bg-weekend' : '';
             const val = count > 0 ? count : '';
             html += `<td class="text-center ${cls}">${val}</td>`;
         }
 
+        grandTotal += tData.total;
         html += `<td class="text-center text-primary" style="font-weight: 600;">${tData.total}</td>`;
         tr.innerHTML = html;
         fragment.appendChild(tr);
     });
 
     tbody.appendChild(fragment);
+
+    // Build footer
+    if (tfoot) {
+        let ftHtml = `<tr>
+            <td colspan="2" class="text-center" style="font-weight: 700; background-color: var(--primary); color: white; position: sticky; left: 0; z-index: 10;">รวมทั้งสิ้น</td>`;
+        for (let i = 0; i < daysInMonth; i++) {
+            const dayType = isNonWorkingDay(year, month, i + 1);
+            const cls = dayType === 'holiday' ? 'bg-holiday' : dayType === 'weekend' ? 'bg-weekend' : '';
+            const val = colTotals[i] > 0 ? colTotals[i] : '';
+            ftHtml += `<td class="text-center ${cls}" style="font-weight: 700; background-color: var(--primary); color: white;">${val}</td>`;
+        }
+        ftHtml += `<td class="text-center" style="font-weight: 700; background-color: var(--primary); color: white;">${grandTotal}</td></tr>`;
+        tfoot.innerHTML = ftHtml;
+    }
 }
 
 // Capture award card as image
