@@ -98,7 +98,11 @@ async function fetchWithCache(url, expiryMinutes = 5) {
     }
     
     console.log("Fetching fresh API data in report");
-    const res = await fetch(url);
+    const res = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        redirect: 'follow'
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     
@@ -139,8 +143,12 @@ async function init() {
         setupEventListeners();
 
     } catch (err) {
+        let errorMsg = err.message;
+        if (errorMsg === 'Failed to fetch' || errorMsg.includes('NetworkError')) {
+            errorMsg = 'ไม่สามารถเชื่อมต่อ API ได้ (Failed to fetch)<br><small style="color:#666; font-size: 0.85em; display: inline-block; margin-top: 8px; text-align: left;">สาเหตุที่เป็นไปได้:<br>1. ตั้งค่าสิทธิ์ Deploy ของ Google Apps Script ไม่เป็น "Anyone"<br>2. เบราว์เซอร์หรือส่วนขยาย (AdBlock / Privacy Shield) บล็อกการดึงข้อมูลข้ามโดเมน</small>';
+        }
         document.getElementById('report-loader').innerHTML =
-            `<p class="text-orange" style="text-align:center;">เกิดข้อผิดพลาด: ${err.message}</p>`;
+            `<p class="text-orange" style="text-align:center;">เกิดข้อผิดพลาด:<br><b>${errorMsg}</b></p>`;
     }
 }
 
