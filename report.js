@@ -101,6 +101,7 @@ async function fetchWithCache(url, expiryMinutes = 5) {
     const res = await fetch(url, {
         method: 'GET',
         mode: 'cors',
+        credentials: 'omit',
         redirect: 'follow'
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
