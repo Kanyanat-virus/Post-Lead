@@ -23,7 +23,8 @@ async function fetchWithCache(url, expiryMinutes = 5) {
     }
     
     console.log("Fetching fresh API data");
-    const res = await fetch(url, {
+    const cacheBusterUrl = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+    const res = await fetch(cacheBusterUrl, {
         method: 'GET',
         mode: 'cors',
         credentials: 'omit',
