@@ -1,5 +1,5 @@
 // ใส่ URL ของ Google Apps Script Web App ที่ได้จากการ Deploy ที่นี่
-const API_URL = 'https://script.google.com/macros/s/AKfycbyfbWtEkj7c9ImlU4z3izMX5HeH1DFum061ZjJQjIthlKJ3PMwHReN7stwvxveCRd1TUQ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxZjxYIwE5H28QUo9CMJnrT_00iP5--W2FbHLJTBsz-7bujH24me9tVS2r1nkOAtB0ziQ/exec';
 
 // State
 let branchDict = {}; // branchCode -> { province, branchName, team }
