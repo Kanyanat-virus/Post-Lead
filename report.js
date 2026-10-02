@@ -98,15 +98,33 @@ async function fetchWithCache(url, expiryMinutes = 5) {
     }
     
     console.log("Fetching fresh API data in report");
-    const cacheBusterUrl = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
-    const res = await fetch(cacheBusterUrl, {
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'omit',
-        redirect: 'follow'
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    let data;
+    let retries = 3;
+    let delay = 1000;
+    
+    for (let i = 0; i < retries; i++) {
+        try {
+            const sep = url.includes('?') ? '&' : '?';
+            const fetchUrl = url + sep + 't=' + Date.now();
+            
+            const res = await fetch(fetchUrl, {
+                method: 'GET',
+                mode: 'cors',
+                credentials: 'omit',
+                redirect: 'follow'
+            });
+            
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            
+            data = await res.json();
+            break; // Success
+        } catch (err) {
+            console.warn(`Fetch failed (attempt ${i + 1}/${retries}):`, err.message);
+            if (i === retries - 1) throw err;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2; // Exponential backoff
+        }
+    }
     
     if (data.status === 'success') {
         // Cleanup old dashboardData cache keys to prevent quota exceeded errors
